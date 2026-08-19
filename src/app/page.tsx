@@ -12,7 +12,7 @@ export default async function Home() {
             Welcome to the Feed, <span className="text-indigo-600">{session.user.name || 'Techie'}</span>!
           </h1>
           <p className="text-lg text-gray-500 mb-8 max-w-2xl mx-auto">
-            Yahan jald hi baqi users ki tech posts, gadget reviews aur custom setups nazar aayenge.
+            Discover the latest tech trends, share your setup, and connect with fellow enthusiasts.
           </p>
           <button className="px-6 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors">
             Create First Post
