@@ -17,7 +17,7 @@ const prisma = new PrismaClient();
 
 // Register
 export async function registerUser(data: RegisterInput) {
-  // Backend par bhi validate karein (Security ke liye zaroori hai)
+  // Validate on the backend as well for security purposes
   const validatedFields = registerSchema.safeParse(data);
 
   if (!validatedFields.success) {
@@ -31,7 +31,7 @@ export async function registerUser(data: RegisterInput) {
   });
 
   if (existingUser) {
-    return { error: "Is email se account pehle se mojood hai!" };
+    return { error: "An account with this email already exists!" };
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -42,8 +42,8 @@ export async function registerUser(data: RegisterInput) {
     });
     return { success: true };
   } catch (error) {
-    console.error("Error:", error); // Yeh line add kar dein
-    return { error: "Kuch galat ho gaya, dobara try karein." };
+    console.error("Error:", error);
+    return { error: "Something went wrong, please try again." };
   }
 }
 
@@ -58,7 +58,7 @@ export async function loginUser(data: LoginInput) {
   const { email, password } = validatedFields.data;
 
   try {
-    // NextAuth ka signIn function call kar rahe hain
+    // Calling NextAuth signIn function
     await signIn("credentials", {
       email,
       password,
@@ -68,9 +68,9 @@ export async function loginUser(data: LoginInput) {
     if (error instanceof AuthError) {
       switch (error.type) {
         case "CredentialsSignin":
-          return { error: "Email ya password galat hai!" };
+          return { error: "Invalid email or password!" };
         default:
-          return { error: "Kuch galat ho gaya, dobara try karein." };
+          return { error: "Something went wrong, please try again." };
       }
     }
     throw error;
@@ -85,29 +85,29 @@ export async function logoutUser() {
 // Forgot Password
 export async function resetPasswordRequest(email: string) {
   if (!email) {
-    return { error: "Email likhna zaroori hai!" };
+    return { error: "Email address is required!" };
   }
 
-  // Check karein ke user mojood hai ya nahi
+  // Check if user exists
   const user = await prisma.user.findUnique({
     where: { email },
   });
 
   if (!user) {
-    return { error: "Is email se koi account mojood nahi hai." };
+    return { error: "No account found with this email." };
   }
 
-  // Unique Token aur Expiry (1 ghanta) set karein
+  // Set unique token and expiry (1 hour)
   const token = uuidv4();
   const expires = new Date(new Date().getTime() + 3600 * 1000); // Current time + 1 hour
 
   try {
-    // Agar is email ka koi purana token hai toh usay delete kar dein (Clean up)
+    // Clean up any old tokens for this email
     await prisma.passwordResetToken.deleteMany({
       where: { email },
     });
 
-    // Naya token database mein save karein
+    // Save the new token in the database
     await prisma.passwordResetToken.create({
       data: {
         email,
@@ -116,66 +116,66 @@ export async function resetPasswordRequest(email: string) {
       },
     });
 
-    // Email send karein
+    // Send the email
     await sendPasswordResetEmail(email, token);
 
     return {
       success:
-        "Password reset email bhej di gayi hai! Apna inbox check karein.",
+        "Password reset email has been sent! Please check your inbox.",
     };
   } catch (error) {
     console.error("Forgot Password Error:", error);
-    return { error: "Kuch galat ho gaya, dobara try karein." };
+    return { error: "Something went wrong, please try again." };
   }
 }
 
 // Forgot Password - Set New Password
 export async function setNewPassword(password: string, token: string) {
   if (!password || !token) {
-    return { error: "Data mukammal nahi hai!" }
+    return { error: "Incomplete data provided!" };
   }
 
-  // 1. Check karein ke token database mein hai?
+  // 1. Check if token exists in the database
   const existingToken = await prisma.passwordResetToken.findUnique({
-    where: { token }
-  })
+    where: { token },
+  });
 
   if (!existingToken) {
-    return { error: "Yeh link galat hai ya expire ho chuka hai!" }
+    return { error: "This link is invalid or has expired!" };
   }
 
-  // 2. Check karein ke token expire toh nahi ho gaya?
-  const hasExpired = new Date(existingToken.expires) < new Date()
+  // 2. Check if token has expired
+  const hasExpired = new Date(existingToken.expires) < new Date();
   if (hasExpired) {
-    return { error: "Yeh link expire ho chuka hai. Naya link mangwayen." }
+    return { error: "This link has expired. Please request a new one." };
   }
 
-  // 3. User ko dhundhein
+  // 3. Find the user
   const user = await prisma.user.findUnique({
-    where: { email: existingToken.email }
-  })
+    where: { email: existingToken.email },
+  });
 
   if (!user) {
-    return { error: "Is email se koi user nahi mila!" }
+    return { error: "No user found for this email!" };
   }
 
-  // 4. Naya password encrypt (hash) karein aur save karein
-  const hashedPassword = await bcrypt.hash(password, 10)
+  // 4. Hash new password and save it
+  const hashedPassword = await bcrypt.hash(password, 10);
 
   try {
     await prisma.user.update({
       where: { id: user.id },
-      data: { password: hashedPassword }
-    })
+      data: { password: hashedPassword },
+    });
 
-    // 5. Purane token ko delete kar dein taake dobara use na ho sake
+    // 5. Delete the old token so it cannot be reused
     await prisma.passwordResetToken.delete({
-      where: { id: existingToken.id }
-    })
+      where: { id: existingToken.id },
+    });
 
-    return { success: "Password successfully update ho gaya hai!" }
+    return { success: "Password successfully updated!" };
   } catch (error) {
-    console.error("Set Password Error:", error)
-    return { error: "Kuch galat ho gaya, dobara try karein." }
+    console.error("Set Password Error:", error);
+    return { error: "Something went wrong, please try again." };
   }
 }

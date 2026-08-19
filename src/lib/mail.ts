@@ -13,10 +13,10 @@ export async function sendPasswordResetEmail(email: string, token: string) {
     html: `
       <div style="font-family: Arial, sans-serif; padding: 20px;">
         <h2>Password Reset Request</h2>
-        <p>Aapne apna password reset karne ki request ki hai.</p>
-        <p>Neeche diye gaye link par click kar ke apna naya password set karein:</p>
+        <p>Hello,</p>
+        <p>You have requested to reset your password. Please click the link below to set a new password:</p>
         <a href="${resetLink}" style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a>
-        <p style="margin-top: 20px; font-size: 12px; color: gray;">Agar aapne yeh request nahi ki, toh is email ko ignore kar dein.</p>
+        <p style="margin-top: 20px; font-size: 12px; color: gray;">If you did not request this, please ignore this email.</p>
       </div>
     `,
   });
